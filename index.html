@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route 33 - Édition Carte Organique & Événements</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#12161f; 
+  --panel-bg:#1a212d; 
+  --sign:#226244; 
+  --sign-d:#174630; 
+  --line:#f2b824; 
+  --text:#f0f2f5; 
+  --muted:#95a1b0;
+  --display:'Barlow Condensed','Arial Narrow',Impact,sans-serif;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);line-height:1.4;padding:14px;max-width:860px;margin:0 auto;user-select:none}
+h1{font-family:var(--display);font-weight:700;font-size:2rem;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
+h1 .shield{background:#1a212d;color:#fff;border:3px solid #f2b824;border-radius:50% 50% 45% 45%;font-size:1.2rem;padding:2px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.4)}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.top button{background:var(--panel-bg);border:1px solid #323d4e;color:var(--muted);border-radius:8px;padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer;transition:all 0.2s}
+.top button:hover{color:#fff;border-color:var(--line)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
+.stat{background:var(--panel-bg);border:2px solid #2d3848;border-radius:10px;padding:7px 10px;box-shadow:0 4px 10px rgba(0,0,0,0.3)}
+.stat small{display:block;color:var(--muted);font-size:.75rem;text-transform:uppercase;font-weight:600}
+.stat b{font-family:var(--display);font-size:1.45rem;font-weight:700;line-height:1.1;display:block;color:var(--line)}
+.stat span{font-size:.75rem;color:#a2b1c2}
+
+.mapwrap{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);border:2px solid #2d3848}
+.map{display:block;width:100%;height:auto;background:#e5e3d7}
+
+.banner{position:absolute;left:14px;top:14px;background:#ffffff;color:#111;border-radius:8px;padding:6px 14px;font:700 1.1rem var(--display);box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:10;display:flex;align-items:center;gap:8px}
+.banner.bad{background:#e74c3c;color:#fff}
+.banner.boost{background:#f1c40f;color:#111}
+
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.25)}}
+
+.secrets{font-size:.85rem;color:var(--muted);text-align:right;margin:4px 2px 10px}
+.lbl{fill:#2c3e50;font:700 13px var(--display);text-anchor:middle;paint-order:stroke;stroke:#ffffff;stroke-width:3px;letter-spacing:.02em;pointer-events:none}
+
+.tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto}
+.tabs button{flex:1;white-space:nowrap;background:var(--panel-bg);color:var(--text);border:2px solid #2d3848;border-radius:8px;padding:8px 12px;font:600 .9rem var(--body);cursor:pointer;transition:all 0.2s}
+.tabs button[aria-selected=true]{background:var(--line);color:#111;border-color:var(--line)}
+.tabs button:disabled{opacity:.4;cursor:not-allowed}
+
+.panel{background:var(--panel-bg);border:1px solid #2d3848;border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+.panel h2{font-family:var(--display);font-size:1.35rem;font-weight:700}
+.panel .intro{color:var(--muted);font-size:.9rem;margin:2px 0 10px;white-space:pre-line}
+
+.btn{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:#232d3d;color:var(--text);border:1px solid #323d4e;border-radius:8px;padding:10px 13px;font:inherit;font-weight:500;cursor:pointer;text-align:left;margin-top:7px;transition:all 0.15s}
+.btn small{display:block;font-weight:400;font-size:.82rem;color:var(--muted)}
+.btn:hover{background:#2a364a;border-color:#485870}
+.btn.done{background:var(--sign-d);color:#cfe8da;border-color:var(--sign)}
+.btn .cost{font-family:var(--display);font-size:1.05rem;font-weight:700;text-align:right;color:var(--line)}
+
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#ffffff;color:#111111;padding:10px 18px;border-radius:10px;font-size:.9rem;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;max-width:90%;z-index:9999;box-shadow:0 8px 20px rgba(0,0,0,0.4)}
+#toast.show{opacity:1}
+
+#eggs g, #spots g{pointer-events:all;cursor:pointer}
+#eggs g:hover, #spots g:hover{filter:drop-shadow(0 0 6px rgba(255,255,255,0.8))}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1><span class="shield">33</span> Route 33 GPS</h1>
+  <button id="reset" type="button">Recommencer</button>
+</div>
+
+<div class="stats">
+  <div class="stat"><small>Argent</small><b id="money">0 $</b><span id="rps">+0 $/s</span></div>
+  <div class="stat"><small>Bois</small><b id="wood">0</b><span id="wps">+0 /s</span></div>
+  <div class="stat"><small>Pierre</small><b id="stone">0</b><span id="sps">+0 /s</span></div>
+  <div class="stat" id="stOre" hidden><small>Minerai</small><b id="ore">0</b><span id="ops">+0 /s</span></div>
+  <div class="stat" id="stOil" hidden><small>Pétrole</small><b id="oil">0</b><span id="pps">+0 /s</span></div>
+  <div class="stat"><small>Trafic</small><b id="cps">0.5</b><span>voitures/s</span></div>
+</div>
+
+<div class="tabs" id="zones" role="tablist" aria-label="Régions"></div>
+
+<div class="mapwrap">
+<div class="banner" id="banner" hidden></div>
+<svg class="map" id="map" viewBox="0 0 800 480" role="img" aria-label="Carte GPS interactive de la route 33">
+  <!-- Fond de carte & Décoration GPS -->
+  <g id="bg"></g>
+  <!-- Chemins sinueux organiques -->
+  <g id="secRoads"></g>
+  <!-- Route Principale GPS -->
+  <path d="M0 410 C150 410 170 270 300 280 S470 400 560 320 S700 120 800 100" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+  <path id="roadPath" d="M0 410 C150 410 170 270 300 280 S470 400 560 320 S700 120 800 100" fill="none" stroke="#ff8c00" stroke-width="14" stroke-linecap="round"/>
+  <path id="roadLine" d="M0 410 C150 410 170 270 300 280 S470 400 560 320 S700 120 800 100" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-dasharray="8 8" opacity="0.9"/>
+  
+  <g id="places"></g>
+  <g id="cars" pointer-events="none"></g>
+  <g id="spots" pointer-events="all"></g>
+  <g id="eggs" pointer-events="all"></g>
+</svg>
+</div>
+
+<p class="secrets" id="secrets">Secrets découverts : 0/8</p>
+
+<div class="tabs" id="tabs" role="tablist"></div>
+<div id="panels"></div>
+<div id="toast" role="status"></div>
+
+<script>
+(() => {
+  const SAVE_KEY = 'route33_gps_v5';
+  const ROADS = ['Chemin de terre','Piste cabossée','Route fissurée','Route rapiécée','Départementale','Nationale','Route asphaltée','Quatre voies'];
+  const VILLAGES = [
+    { name:'Hameau des Pins', pos:{x:120, y:220}, c:{w:20, m:150}, who:'Odile, garde forestière', perk:'bois +25 %', story:'Elle connaît chaque sentier et replante un arbre dès qu’une scie s’arrête.' },
+    { name:'Village du Moulin', pos:{x:380, y:390}, c:{w:80, m:900}, who:'Gaspard, meunier', perk:'pierre +25 %', story:'Sa meule est en panne depuis 1987, mais il jure qu’elle tourne encore.' },
+    { name:'Bourg de la Gare', pos:{x:490, y:180}, c:{w:300, m:5000}, who:'Léa, cheffe de gare', perk:'+10 % par voiture', story:'Aucun train n’est passé depuis trente ans. Elle siffle quand même chaque matin.' },
+    { name:'Ville de Sainte-Roche', pos:{x:720, y:240}, c:{w:1000,m:25000}, who:'Marcel, le maire', perk:'revenus +10 %', story:'Élu seul candidat avec 9 voix. Il promet un grand rond-point.' }
+  ];
+  
+  const SITES = [
+    { name:'Belvédère du lac', pos:{x:160, y:80}, desc:'Revenus +25 %', bonus:.25, need:1, c:{m:3000, w:100, s:40} },
+    { name:'Château de la Roche', pos:{x:680, y:45}, desc:'Revenus +60 %', bonus:.6, need:3, c:{m:20000, w:400, s:200} },
+    { name:'Chalet de ski', pos:{x:690, y:70}, desc:'Revenus +35 %', bonus:.35, zone:1, c:{m:80000, w:600, s:300, o:60} },
+    { name:'Le Burning Man', pos:{x:700, y:390}, desc:'Revenus +70 %', bonus:.7, zone:2, c:{m:500000, o:300, p:200} },
+    { name:'Port de pêche', pos:{x:620, y:380}, desc:'Revenus +120 %', bonus:1.2, zone:3, c:{m:4000000, o:800, p:400} }
+  ];
+
+  const HAMLETS = [
+    [ { name:'Hameau du Col', pos:{x:220, y:90}, c:{m:30000, w:400, s:200}, who:'Hugo', perk:'trafic +10 %', story:'Il prévoit la neige en reniflant.' },
+      { name:'Village de Haut-Pic', pos:{x:510, y:60}, c:{m:60000, w:800, o:80}, who:'Ingrid', perk:'trafic +10 %', story:'Son refuge compte deux lits et trois mille avis.' } ],
+    [ { name:'Oasis de Sable-Sec', pos:{x:210, y:370}, c:{m:300000, w:1500, o:200}, who:'Samir', perk:'trafic +10 %', story:'sa glacière n\'est jamais vide.' },
+      { name:'Motel du Mirage', pos:{x:480, y:110}, c:{m:600000, o:300, p:100}, who:'Dolores', perk:'trafic +10 %', story:'Le néon clignote depuis 1994.' } ],
+    [ { name:'Hameau des Pêcheurs', pos:{x:220, y:380}, c:{m:3000000, o:1000, p:300}, who:'Yann', perk:'trafic +10 %', story:'Il pêche surtout des histoires.' },
+      { name:'Quartier des Docks', pos:{x:490, y:390}, c:{m:6000000, o:1500, p:600}, who:'Rosa', perk:'trafic +10 %', story:'Elle soulève un conteneur en sifflant.' } ]
+  ];
+
+  const PROD_POS = {
+    yard: {x:240, y:340},
+    gas: {x:350, y:295},
+    quarry: {x:580, y:390},
+    mine: {x:360, y:90},
+    well: {x:350, y:380},
+    dock: {x:320, y:300}
+  };
+
+  const UPS = [
+    { id:'asph', name:'Asphalte renforcé', desc:'+25 % par voiture', c:{m:500, s:30} },
+    { id:'lane', name:'Voie supplémentaire', desc:'+30 % de trafic', c:{m:2000, s:80} },
+    { id:'sign', name:'Panneaux publicitaires', desc:'Revenus station ×2', c:{m:1500, s:60} },
+    { id:'crush', name:'Concasseur', desc:'Production pierre ×2', c:{m:4000, s:120} },
+    { id:'saw', name:'Scie mécanique', desc:'Production bois ×2', c:{m:6000, s:150} },
+    { id:'steel', name:'Rails en acier', desc:'+25 % par voiture', c:{m:20000, o:60} },
+    { id:'cable', name:'Téléphérique', desc:'Production minerai ×2', c:{m:30000, o:100, s:150} },
+    { id:'refine', name:'Raffinerie', desc:'Revenus station ×2', c:{m:150000, p:80, o:150} },
+    { id:'grid', name:'Groupes électrogènes', desc:'Ressources +50 %', c:{m:400000, p:200} }
+  ];
+
+  const EGGS = [
+    { id:'ufo', zone:0, pos:{x:730, y:420}, icon:'🛸', title:'Soucoupe Volante', msg:'Une soucoupe écrasée dans un champ. Sur le tableau de bord : “I want to believe.”' },
+    { id:'yeti', zone:0, pos:{x:70, y:310}, icon:'🐾', title:'Yéti', msg:'Un grand pied velu a traversé les bois. Personne ne vous croira.' },
+    { id:'nessie', zone:0, pos:{x:190, y:120}, icon:'🦕', title:'Monstre du lac', msg:'Quelque chose vous a salué depuis le lac !' },
+    { id:'sign66', zone:0, pos:{x:40, y:380}, icon:'🛣️', title:'Route 66', msg:'Panneau perdu : Vous vous êtes trompé de route !' },
+    { id:'chicken', zone:0, pos:{x:430, y:220}, icon:'🐔', title:'Poule traversante', msg:'Pourquoi a-t-elle traversé la route ? Pour aller de l’autre côté.' },
+    { id:'miner', zone:1, pos:{x:130, y:320}, icon:'⛏️', title:'Chercheur d\'or', msg:'Un vieux mineur jure qu’il y a de l’or sous les cailloux.' },
+    { id:'cactus', zone:2, pos:{x:720, y:320}, icon:'🌵', title:'Cactus stylé', msg:'Un cactus avec des lunettes de soleil qui s\'y connaît en routes.' },
+    { id:'bottle', zone:3, pos:{x:140, y:120}, icon:'🍾', title:'Bouteille à la mer', msg:'Message : “Si quelqu’un lit ceci, envoyez du carburant !”' }
+  ];
+
+  const fresh = () => ({ money:0, wood:0, stone:0, road:0, yards:0, gas:0, quarries:0, villages:0, sites:[0,0,0,0,0], up:[], eggs:[], ore:0, oil:0, mines:0, wells:0, docks:0, zones:1, ham:[0,0,0], last:Date.now() });
+  let s = fresh(), view = 0;
+  const $ = id => document.getElementById(id);
+  const has = id => s.up.includes(id);
+
+  const roadCost = () => Math.floor(10 * Math.pow(1.18, s.road));
+  const carsPerS = () => (0.5 + 0.15 * s.road) * (1 + 0.3 * s.villages + 0.1 * (s.ham[0] + s.ham[1] + s.ham[2])) * (has('lane') ? 1.3 : 1);
+  const gridM = () => has('grid') ? 1.5 : 1;
+  const gasPerCar = () => 0.5 * s.gas * (has('sign') ? 2 : 1) * (has('refine') ? 2 : 1);
+  const perCar = () => (1 + 0.4 * s.road) * (has('asph') ? 1.25 : 1) * (has('steel') ? 1.25 : 1) * (s.villages > 2 ? 1.1 : 1) + gasPerCar();
+  const revMult = () => (1 + SITES.reduce((a, v, i) => a + (s.sites[i] ? v.bonus : 0), 0) + (s.eggs.length >= EGGS.length ? 0.1 : 0) + 0.12 * s.docks) * evMult();
+  const baseMoney = () => carsPerS() * perCar() * revMult();
+  const moneyPerS = () => baseMoney();
+  const woodPerS = () => s.yards * 0.4 * (has('saw') ? 2 : 1) * (s.villages > 0 ? 1.25 : 1) * gridM();
+  const stonePerS = () => s.quarries * 0.25 * (has('crush') ? 2 : 1) * (s.villages > 1 ? 1.25 : 1) * gridM();
+  const orePerS = () => s.mines * 0.2 * (has('cable') ? 2 : 1) * gridM();
+  const oilPerS = () => s.wells * 0.15;
+
+  const fmt = n => {
+    if (n < 1000) return n < 10 ? n.toFixed(1).replace(/\.0$/, '') : Math.floor(n).toString();
+    const u = ['k','M','Md','Bn']; let i = -1;
+    while (n >= 1000 && i < u.length - 1) { n /= 1000; i++; }
+    return n.toFixed(n < 10 ? 2 : 1) + ' ' + u[i];
+  };
+  const costStr = c => [c.m && fmt(c.m) + ' $', c.w && fmt(c.w) + ' bois', c.s && fmt(c.s) + ' pierre', c.o && fmt(c.o) + ' minerai', c.p && fmt(c.p) + ' pétrole'].filter(Boolean).join(' + ');
+  const afford = c => s.money >= (c.m || 0) && s.wood >= (c.w || 0) && s.stone >= (c.s || 0) && s.ore >= (c.o || 0) && s.oil >= (c.p || 0);
+  const pay = c => { s.money -= c.m || 0; s.wood -= c.w || 0; s.stone -= c.s || 0; s.ore -= c.o || 0; s.oil -= c.p || 0; };
+
+  const rep = (key, firstLabel, moreLabel, desc, costFn, lock) => ({
+    get: () => { const n = lock && lock(); return n ? { label: firstLabel, desc, state:'locked', note:n } : { label: s[key] ? moreLabel : firstLabel, desc, cost: costFn(s[key]), state:'ready' }; },
+    buy: () => { s[key]++; mapSig = ''; }
+  });
+
+  const ITEMS = {
+    road: { get: () => ({ label:'Améliorer la route', desc: ROADS[Math.min(s.road, ROADS.length - 1)] + ' · niv. ' + s.road, cost:{m:roadCost()}, state:'ready' }), buy: () => { s.road++; } },
+    gas: rep('gas', 'Ouvrir station-service', 'Ajouter une pompe', '+0,5 $ / voiture', n => ({ m: Math.floor(400 * Math.pow(1.25, n)) })),
+    yard: rep('yards', 'Exploitation forestière', 'Exploitation forestière +1', '+0,4 bois/s', n => ({ m: Math.floor(40 * Math.pow(1.2, n)) })),
+    quarry: rep('quarries', 'Ouvrir une carrière', 'Agrandir la carrière', '+0,25 pierre/s', n => ({ m: Math.floor(250 * Math.pow(1.25, n)), w: Math.floor(30 * Math.pow(1.25, n)) }))
+  };
+  ITEMS.mine = rep('mines', 'Ouvrir une mine', 'Creuser une galerie', '+0,2 minerai/s', n => ({ m: Math.floor(1500 * Math.pow(1.25, n)), s: Math.floor(50 * Math.pow(1.25, n)) }), () => s.zones < 2 && 'Prolongez la route vers la montagne');
+  ITEMS.well = rep('wells', 'Forer un puits', 'Forer un puits de plus', '+0,15 pétrole/s', n => ({ m: Math.floor(20000 * Math.pow(1.25, n)), o: Math.floor(40 * Math.pow(1.25, n)) }), () => s.zones < 3 && 'Prolongez la route vers le désert');
+  ITEMS.dock = rep('docks', 'Construire un quai', 'Agrandir le port', '+12 % de revenus', n => ({ m: Math.floor(200000 * Math.pow(1.3, n)), o: Math.floor(100 * Math.pow(1.3, n)), p: Math.floor(60 * Math.pow(1.3, n)) }), () => s.zones < 4 && 'Prolongez la route vers le port');
+
+  const villageItems = VILLAGES.map((v, i) => ({
+    get: () => i < s.villages ? { label: v.name + ' (restauré)', state:'done', desc:'' }
+      : i > s.villages ? { label:'Village verrouillé', state:'locked', note:'Restaurez le précédent', desc:'' }
+      : { label:'Restaurer ' + v.name, desc:'+30 % trafic · ' + v.perk, cost:v.c, state:'ready' },
+    buy: () => { s.villages++; mapSig = ''; toast(v.who.split(',')[0] + ' s’installe !'); }
+  }));
+  const siteItems = SITES.map((v, i) => ({
+    get: () => s.sites[i] ? { label: v.name + ' (restauré)', state:'done', desc:'' }
+      : v.zone && s.zones <= v.zone ? { label: v.name, state:'locked', note:'Prolongez la route : ' + ZONES[v.zone].name, desc: v.desc }
+      : s.villages < (v.need || 0) ? { label: v.name, state:'locked', note:'Restaurez ' + v.need + ' village(s)', desc:'' }
+      : { label:'Restaurer : ' + v.name, desc: v.desc, cost:v.c, state:'ready' },
+    buy: () => { s.sites[i] = 1; mapSig = ''; }
+  }));
+  const upItems = UPS.map(u => ({
+    get: () => has(u.id) ? { label: u.name + ' (installé)', state:'done', desc:'' }
+      : (u.c.p && s.wells < 1) ? { label: u.name, state:'locked', note:'Forez un puits de pétrole', desc: u.desc }
+      : (u.c.o && s.mines < 1) ? { label: u.name, state:'locked', note:'Ouvrez une mine', desc: u.desc }
+      : (u.c.s && s.quarries < 1) ? { label: u.name, state:'locked', note:'Ouvrez une carrière', desc: u.desc }
+      : { label: u.name, desc: u.desc, cost:u.c, state:'ready' },
+    buy: () => { s.up.push(u.id); }
+  }));
+
+  const ZONES = [
+    { name:'Plaine' },
+    { name:'Montagne', c:{m:15000, w:300, s:100}, req:'Route niv. 8 & 2 villages', ok:() => s.road >= 8 && s.villages >= 2, tease:'Mines & Minerai' },
+    { name:'Désert', c:{m:150000, s:600, o:200}, req:'Route niv. 12', ok:() => s.road >= 12, tease:'Puits de pétrole' },
+    { name:'Port', c:{m:1500000, o:800, p:300}, req:'Route niv. 16', ok:() => s.road >= 16, tease:'Quais : +12 % de revenus' }
+  ];
+  const zoneItems = ZONES.slice(1).map((z, k) => { const i = k + 1; return {
+    get: () => i < s.zones ? { label: z.name + ' (route prolongée)', state:'done', desc:'' }
+      : i > s.zones ? { label: z.name, state:'locked', note:'Prolongez la route précédente', desc:'' }
+      : !z.ok() ? { label: z.name, state:'locked', note: z.req, desc: z.tease }
+      : { label:'Prolonger la route : ' + z.name, desc: z.tease, cost: z.c, state:'ready' },
+    buy: () => { s.zones++; view = i; mapSig = ''; drawEggs(); toast('Bienvenue en ' + z.name + ' !'); }
+  }; });
+
+  const hamItems = HAMLETS.flatMap((list, z) => list.map((h, j) => ({
+    get: () => s.zones < z + 2 ? { label: h.name, state:'locked', note:'Prolongez la route : ' + ZONES[z + 1].name, desc:'' }
+      : j < s.ham[z] ? { label: h.name + ' (restauré)', state:'done', desc:'' }
+      : j > s.ham[z] ? { label:'Hameau verrouillé', state:'locked', note:'Restaurez le précédent', desc:'' }
+      : { label:'Restaurer ' + h.name, desc:'+10 % de trafic', cost:h.c, state:'ready' },
+    buy: () => { s.ham[z]++; mapSig = ''; toast(h.name + ' restauré !'); }
+  })));
+
+  const TABS = [
+    { name:'Route', sections:[
+      { title:'Infrastructure', intro:() => fmt(perCar()) + ' $ par voiture', items:[ITEMS.road] },
+      { title:'Station-service', intro:() => s.gas ? s.gas + ' pompe(s) active(s)' : 'Ajoutez des pompes à essence.', items:[ITEMS.gas] }
+    ]},
+    { name:'Production', sections:[
+      { title:'Ressources naturelles', intro:() => 'Générez des matériaux pour bâtir la route.', items:[ITEMS.yard, ITEMS.quarry, ITEMS.mine, ITEMS.well, ITEMS.dock] }
+    ]},
+    { name:'Améliorations', sections:[
+      { title:'Atelier de technologie', intro:() => 'Boosts permanents de production et trafic.', items:upItems }
+    ]},
+    { name:'Restauration', sections:[
+      { title:'Villages & Sites', intro:() => 'Restaurer des lieux augmente les revenus et le trafic.', items:[...villageItems, ...siteItems, ...hamItems] },
+      { title:'Journal des habitants', intro:() => {
+          const unlocked = VILLAGES.slice(0, s.villages).concat(...HAMLETS.map((h, z) => h.slice(0, s.ham[z])));
+          return unlocked.length ? unlocked.map(v => '🏡 ' + v.name + ' · ' + v.who + ' (' + v.perk + ')\n' + v.story).join('\n\n') : 'Restaurez un village ou un hameau pour rencontrer ses habitants.';
+        }, items:[]
+      }
+    ]},
+    { name:'Zones', sections:[
+      { title:'Extension de la carte', intro:() => 'Débloquez de nouvelles régions.', items:zoneItems }
+    ]}
+  ];
+
+  function save() { s.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {} }
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      s = Object.assign(fresh(), JSON.parse(raw));
+    } catch (e) { s = fresh(); }
+  }
+
+  let toastT;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  let active = 0;
+  function buildPanels() {
+    $('tabs').innerHTML = '';
+    $('panels').innerHTML = '';
+    TABS.forEach((t, ti) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.role = 'tab'; b.textContent = t.name;
+      b.onclick = () => { active = ti; showTab(); };
+      t.btn = b; $('tabs').appendChild(b);
+
+      const wrap = document.createElement('div'); t.el = wrap; $('panels').appendChild(wrap);
+      t.sections.forEach(sec => {
+        const p = document.createElement('section'); p.className = 'panel';
+        p.innerHTML = '<h2></h2><p class="intro"></p>';
+        p.querySelector('h2').textContent = sec.title; sec.introEl = p.querySelector('.intro');
+        sec.items.forEach(it => {
+          const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'btn';
+          bt.innerHTML = '<span><span class="lb"></span><small class="ds"></small></span><span class="cost"></span>';
+          
+          bt.onclick = (e) => {
+            e.preventDefault();
+            const info = it.get();
+            if (info.state === 'done') return;
+            if (info.state === 'locked') { toast('🔒 ' + (info.note || 'Verrouillé')); return; }
+            if (!afford(info.cost)) { toast('⚠️ Ressources insuffisantes !'); return; }
+            pay(info.cost); it.buy(); draw(); save();
+          };
+          it.el = bt; p.appendChild(bt);
+        });
+        wrap.appendChild(p);
+      });
+    });
+    showTab();
+  }
+
+  function showTab() { TABS.forEach((t, i) => { t.el.hidden = i !== active; t.btn.setAttribute('aria-selected', i === active); }); }
+  function updatePanels() {
+    TABS[active].sections.forEach(sec => {
+      sec.introEl.textContent = sec.intro();
+      sec.items.forEach(it => {
+        const i = it.get(), el = it.el;
+        el.querySelector('.lb').textContent = i.label;
+        el.querySelector('.ds').textContent = i.desc || '';
+        el.querySelector('.ds').hidden = !i.desc;
+        el.querySelector('.cost').textContent = i.state === 'done' ? '✓' : i.state === 'locked' ? i.note : costStr(i.cost);
+        el.classList.toggle('done', i.state === 'done');
+        el.disabled = (i.state === 'done');
+        el.style.opacity = (i.state === 'ready' && !afford(i.cost)) ? '0.6' : '1';
+      });
+    });
+  }
+
+  const roadPath = $('roadPath'), L = roadPath.getTotalLength();
+
+  // Helper pour marquer un pin GPS stylisé
+  function pin(x, y, icon, label, bg='#e74c3c', ok=true) {
+    if (!ok) return `<g transform="translate(${x},${y})"><circle r="12" fill="#bdc3c7" stroke="#fff" stroke-width="2"/><text y="4" font-size="12" text-anchor="middle" fill="#fff">?</text></g>`;
+    return `<g transform="translate(${x},${y})">
+      <path d="M 0 -22 C -10 -22 -16 -14 -16 -6 C -16 8 0 20 0 20 C 0 20 16 8 16 -6 C 16 -14 10 -22 0 -22 Z" fill="${bg}" stroke="#ffffff" stroke-width="2"/>
+      <circle cx="0" cy="-7" r="9" fill="#ffffff"/>
+      <text x="0" y="-3" font-size="11" text-anchor="middle">${icon}</text>
+      <text class="lbl" x="0" y="-26">${label}</text>
+    </g>`;
+  }
+
+  // Tracer de routes organiques sinueuses (Courbes de Bézier)
+  function organicPath(x1, y1, x2, y2, color="#ffffff", width=3, dash="4 4") {
+    const cx1 = (x1 + x2) / 2 + (y2 - y1) * 0.25;
+    const cy1 = (y1 + y2) / 2 - (x2 - x1) * 0.25;
+    return `<path d="M ${x1} ${y1} Q ${cx1} ${cy1} ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="${dash}" opacity="0.85"/>`;
+  }
+
+  // --- Événements Aléatoires et Interactifs ---
+  let ev = { name:'', mult:1, until:0 };
+  const evMult = () => Date.now() < ev.until ? ev.mult : 1;
+  const setEffect = (name, mult, secs, isBad) => {
+    ev = { name, mult, until: Date.now() + secs * 1000 };
+    drawEvents();
+  };
+
+  let spot = null, nextEv = Date.now() + 15000;
+  const SPOTS = {
+    breakdown: {
+      color:'#e74c3c', icon:'⚠️', label:'Embouteillage !', secs:14,
+      win() { const g = baseMoney() * 35 + 10; s.money += g; toast('🔧 Dépannage effectué : +' + fmt(g) + ' $'); },
+      lose() { setEffect('Bouchon (-50%)', 0.5, 12, true); toast('🚨 Embouteillage non résolu : trafic ralenti !'); }
+    },
+    truck: {
+      color:'#3498db', icon:'📦', label:'Livraison Spéciale', secs:15,
+      win() {
+        const parts = [];
+        if (s.yards) { const w = woodPerS() * 60 + 20; s.wood += w; parts.push('+' + fmt(w) + ' bois'); }
+        if (s.quarries) { const p = stonePerS() * 60 + 15; s.stone += p; parts.push('+' + fmt(p) + ' pierre'); }
+        if (s.mines) { const o = orePerS() * 60 + 10; s.ore += o; parts.push('+' + fmt(o) + ' minerai'); }
+        if (!parts.length) { const m = baseMoney() * 50 + 20; s.money += m; parts.push('+' + fmt(m) + ' $'); }
+        toast('🚚 Livraison reçue : ' + parts.join(', '));
+      },
+      lose() { toast('🚚 Le camion de livraison a continué sa route.'); }
+    },
+    bus: {
+      color:'#f1c40f', icon:'🚌', label:'Bus de Touristes', secs:16,
+      win() { setEffect('Touristes (Revenus ×3)', 3, 20); toast('🚌 Bus accueilli ! Revenus ×3 pendant 20 s !'); },
+      lose() { toast('🚌 Le bus de touristes est parti dans une autre ville.'); }
+    }
+  };
+
+  function spawnSpot(type) {
+    const d = SPOTS[type];
+    const roadPos = roadPath.getPointAtLength((0.15 + Math.random() * 0.7) * L);
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${roadPos.x} ${roadPos.y})`);
+    g.innerHTML = `
+      <circle class="pulse" r="14" fill="${d.color}" stroke="#ffffff" stroke-width="2.5"/>
+      <text y="4" font-size="12" text-anchor="middle">${d.icon}</text>
+      <text class="lbl" y="-22">${d.label}</text>
+    `;
+    g.onclick = () => endSpot(true);
+    $('spots').appendChild(g);
+    spot = { type, g, until: Date.now() + d.secs * 1000 };
+  }
+
+  function endSpot(won) {
+    if (!spot) return;
+    const d = SPOTS[spot.type];
+    spot.g.remove();
+    spot = null;
+    won ? d.win() : d.lose();
+    draw();
+    save();
+  }
+
+  function runEvents() {
+    const t = Date.now();
+    if (spot && t > spot.until) endSpot(false);
+    if (spot || t < ev.until || t < nextEv) return;
+
+    nextEv = t + (30 + Math.random() * 35) * 1000;
+    const r = Math.random();
+    if (r < 0.4) spawnSpot('breakdown');
+    else if (r < 0.7) spawnSpot('truck');
+    else spawnSpot('bus');
+  }
+
+  function drawEvents() {
+    const left = Math.ceil((ev.until - Date.now()) / 1000), on = left > 0, b = $('banner');
+    b.hidden = !on;
+    if (on) {
+      b.textContent = ev.name + ' · ' + left + 's';
+      b.className = 'banner ' + (ev.mult < 1 ? 'bad' : 'boost');
+    }
+    $('secrets').textContent = 'Secrets découverts : ' + s.eggs.length + '/' + EGGS.length;
+  }
+
+  let mapSig = '';
+  function drawMap() {
+    const sig = [s.yards, s.gas, s.quarries, s.villages, s.sites.join(), view, s.mines, s.wells, s.docks, s.ham.join()].join('|');
+    if (sig !== mapSig) {
+      mapSig = sig;
+      
+      const BG_MAPS = [
+        // Plaine
+        `<rect width="800" height="480" fill="#e5e3d7"/>
+         <path d="M 50 40 Q 200 20 300 120 T 150 250 Z" fill="#d0e6a5" opacity="0.6"/>
+         <path d="M 450 300 Q 600 250 750 350 T 550 450 Z" fill="#d0e6a5" opacity="0.6"/>
+         <path d="M 100 80 Q 200 40 260 120 T 130 200 Z" fill="#a4c2f4" stroke="#8ab4f8" stroke-width="2"/>
+         <path d="M 0 150 Q 250 80 500 220 T 800 180" fill="none" stroke="#d5d3c5" stroke-width="2.5"/>`,
+        // Montagne
+        `<rect width="800" height="480" fill="#dcdad1"/>
+         <path d="M 50 50 Q 250 10 400 150 T 80 350 Z" fill="#c3c8c0" opacity="0.5"/>
+         <polygon points="200,40 240,110 160,110" fill="#b0b7bd"/>
+         <polygon points="650,30 700,120 600,120" fill="#b0b7bd"/>`,
+        // Désert
+        `<rect width="800" height="480" fill="#f4e4c1"/>
+         <path d="M 100 80 Q 300 40 450 180 T 150 400 Z" fill="#ead2a4" opacity="0.5"/>`,
+        // Port / Côte
+        `<rect width="800" height="480" fill="#e5e3d7"/>
+         <path d="M 0 280 Q 350 250 500 480 L 0 480 Z" fill="#a4c2f4"/>
+         <path d="M 0 280 Q 350 250 500 480" fill="none" stroke="#8ab4f8" stroke-width="3"/>`
+      ];
+      $('bg').innerHTML = BG_MAPS[view];
+
+      // Routes secondaires sinueuses
+      let secRoads = '';
+      if (view === 0) {
+        secRoads += organicPath(300, 280, VILLAGES[0].pos.x, VILLAGES[0].pos.y);
+        secRoads += organicPath(420, 330, VILLAGES[1].pos.x, VILLAGES[1].pos.y);
+        secRoads += organicPath(470, 240, VILLAGES[2].pos.x, VILLAGES[2].pos.y);
+        secRoads += organicPath(700, 120, VILLAGES[3].pos.x, VILLAGES[3].pos.y);
+        secRoads += organicPath(VILLAGES[0].pos.x, VILLAGES[0].pos.y, SITES[0].pos.x, SITES[0].pos.y);
+        secRoads += organicPath(VILLAGES[3].pos.x, VILLAGES[3].pos.y, SITES[1].pos.x, SITES[1].pos.y);
+        secRoads += organicPath(200, 360, PROD_POS.yard.x, PROD_POS.yard.y);
+        secRoads += organicPath(560, 320, PROD_POS.quarry.x, PROD_POS.quarry.y);
+      } else if (view === 1) {
+        secRoads += organicPath(300, 280, HAMLETS[0][0].pos.x, HAMLETS[0][0].pos.y);
+        secRoads += organicPath(560, 320, HAMLETS[0][1].pos.x, HAMLETS[0][1].pos.y);
+        secRoads += organicPath(300, 280, PROD_POS.mine.x, PROD_POS.mine.y);
+        secRoads += organicPath(700, 120, SITES[2].pos.x, SITES[2].pos.y);
+      } else if (view === 2) {
+        secRoads += organicPath(300, 280, HAMLETS[1][0].pos.x, HAMLETS[1][0].pos.y);
+        secRoads += organicPath(470, 240, HAMLETS[1][1].pos.x, HAMLETS[1][1].pos.y);
+        secRoads += organicPath(420, 330, PROD_POS.well.x, PROD_POS.well.y);
+        secRoads += organicPath(560, 320, SITES[3].pos.x, SITES[3].pos.y);
+      } else if (view === 3) {
+        secRoads += organicPath(300, 280, HAMLETS[2][0].pos.x, HAMLETS[2][0].pos.y);
+        secRoads += organicPath(470, 240, HAMLETS[2][1].pos.x, HAMLETS[2][1].pos.y);
+        secRoads += organicPath(300, 280, PROD_POS.dock.x, PROD_POS.dock.y);
+        secRoads += organicPath(560, 320, SITES[4].pos.x, SITES[4].pos.y);
+      }
+      $('secRoads').innerHTML = secRoads;
+
+      // Pins GPS des emplacements
+      let o = '';
+      if (view === 0) {
+        VILLAGES.forEach((v, i) => { o += pin(v.pos.x, v.pos.y, '🏡', v.name, '#e67e22', i < s.villages); });
+        o += pin(PROD_POS.yard.x, PROD_POS.yard.y, '🌲', 'Forêt', '#27ae60', s.yards > 0);
+        o += pin(PROD_POS.gas.x, PROD_POS.gas.y, '⛽', 'Station', '#e74c3c', s.gas > 0);
+        o += pin(PROD_POS.quarry.x, PROD_POS.quarry.y, '🪨', 'Carrière', '#7f8c8d', s.quarries > 0);
+        o += pin(SITES[0].pos.x, SITES[0].pos.y, '🔭', SITES[0].name, '#2980b9', s.sites[0]);
+        o += pin(SITES[1].pos.x, SITES[1].pos.y, '🏰', SITES[1].name, '#8e44ad', s.sites[1]);
+      } else if (view === 1) {
+        HAMLETS[0].forEach((h, j) => { o += pin(h.pos.x, h.pos.y, '🏔️', h.name, '#e67e22', j < s.ham[0]); });
+        o += pin(PROD_POS.mine.x, PROD_POS.mine.y, '⛏️', 'Mine', '#d35400', s.mines > 0);
+        o += pin(SITES[2].pos.x, SITES[2].pos.y, '🎿', SITES[2].name, '#2980b9', s.sites[2]);
+      } else if (view === 2) {
+        HAMLETS[1].forEach((h, j) => { o += pin(h.pos.x, h.pos.y, '🏜️', h.name, '#e67e22', j < s.ham[1]); });
+        o += pin(PROD_POS.well.x, PROD_POS.well.y, '🛢️', 'Puits', '#2c3e50', s.wells > 0);
+        o += pin(SITES[3].pos.x, SITES[3].pos.y, '🔥', SITES[3].name, '#c0392b', s.sites[3]);
+      } else if (view === 3) {
+        HAMLETS[2].forEach((h, j) => { o += pin(h.pos.x, h.pos.y, '⚓', h.name, '#e67e22', j < s.ham[2]); });
+        o += pin(PROD_POS.dock.x, PROD_POS.dock.y, '🚢', 'Quai', '#16a085', s.docks > 0);
+        o += pin(SITES[4].pos.x, SITES[4].pos.y, '🐟', SITES[4].name, '#2980b9', s.sites[4]);
+      }
+      $('places').innerHTML = o;
+    }
+  }
+
+  // Voitures
+  const COLORS = ['#e74c3c','#3498db','#f1c40f','#2ecc71','#9b59b6'];
+  const carsEl = $('cars'), cars = [];
+  function spawnCar() {
+    if (cars.length >= 28) return;
+    const dir = Math.random() < .5 ? 1 : -1, el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    el.setAttribute('r', 4.5);
+    el.setAttribute('fill', COLORS[Math.floor(Math.random() * COLORS.length)]);
+    el.setAttribute('stroke', '#ffffff');
+    el.setAttribute('stroke-width', '1.5');
+    carsEl.appendChild(el);
+    cars.push({ el, l: dir > 0 ? 0 : L, dir, v: L / Math.max(5, 24 - 1.5 * s.road) });
+  }
+  function moveCars(dt) {
+    for (let i = cars.length - 1; i >= 0; i--) {
+      const c = cars[i]; c.l += c.dir * c.v * dt;
+      if (c.l < 0 || c.l > L) { c.el.remove(); cars.splice(i, 1); continue; }
+      const safeL = Math.max(0, Math.min(L - 2, c.l));
+      const a = roadPath.getPointAtLength(safeL), b = roadPath.getPointAtLength(safeL + 2);
+      const dx = b.x - a.x, dy = b.y - a.y, n = Math.hypot(dx, dy) || 1;
+      c.el.setAttribute('cx', a.x - (dy / n) * c.dir * 3.6);
+      c.el.setAttribute('cy', a.y + (dx / n) * c.dir * 3.6);
+    }
+  }
+
+  function drawEggs() {
+    let out = '';
+    EGGS.forEach(egg => {
+      if (egg.zone !== view) return;
+      const ok = s.eggs.includes(egg.id);
+      out += `<g data-egg="${egg.id}">
+        ${pin(egg.pos.x, egg.pos.y, ok ? egg.icon : '❓', ok ? egg.title : 'Mystère', ok ? '#f39c12' : '#7f8c8d', true)}
+      </g>`;
+    });
+    $('eggs').innerHTML = out;
+  }
+
+  $('eggs').addEventListener('click', e => {
+    const g = e.target.closest('[data-egg]');
+    if (!g) return;
+    const eggId = g.getAttribute('data-egg');
+    const egg = EGGS.find(x => x.id === eggId);
+    if (!egg) return;
+
+    if (s.eggs.includes(egg.id)) {
+      toast('💡 Secret connu : ' + egg.msg);
+    } else {
+      s.eggs.push(egg.id);
+      const gain = 200 + baseMoney() * 60;
+      s.money += gain;
+      toast('🎉 Secret révélé ! ' + egg.msg + ' (+' + fmt(gain) + ' $)');
+      drawEggs();
+      draw();
+      save();
+    }
+  });
+
+  function buildZoneBar() {
+    $('zones').innerHTML = '';
+    ZONES.forEach((z, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.role = 'tab'; b.textContent = z.name;
+      b.onclick = () => { view = i; mapSig = ''; drawEggs(); draw(); };
+      z.btn = b; $('zones').appendChild(b);
+    });
+  }
+
+  function draw() {
+    $('money').textContent = fmt(s.money) + ' $';
+    $('rps').textContent = '+' + fmt(moneyPerS()) + ' $/s';
+    $('wood').textContent = fmt(s.wood); $('wps').textContent = '+' + fmt(woodPerS()) + ' /s';
+    $('stone').textContent = fmt(s.stone); $('sps').textContent = '+' + fmt(stonePerS()) + ' /s';
+    $('cps').textContent = carsPerS().toFixed(1);
+    $('ore').textContent = fmt(s.ore); $('ops').textContent = '+' + fmt(orePerS()) + ' /s';
+    $('oil').textContent = fmt(s.oil); $('pps').textContent = '+' + fmt(oilPerS()) + ' /s';
+    $('stOre').hidden = s.zones < 2; $('stOil').hidden = s.zones < 3;
+    if (view >= s.zones) view = 0;
+    ZONES.forEach((z, i) => { if(z.btn) { z.btn.disabled = i >= s.zones; z.btn.setAttribute('aria-selected', i === view); } });
+    updatePanels(); drawMap(); drawEvents();
+  }
+
+  $('reset').onclick = () => {
+    if (confirm('Voulez-vous réinitialiser votre progression ?')) {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      if (spot) { spot.g.remove(); spot = null; }
+      s = fresh(); view = 0; mapSig = ''; drawEggs(); draw(); toast('Partie réinitialisée.');
+    }
+  };
+
+  let prev = performance.now();
+  function tick(now) {
+    const dt = Math.min((now - prev) / 1000, 1); prev = now;
+    s.money += moneyPerS() * dt; s.wood += woodPerS() * dt; s.stone += stonePerS() * dt; s.ore += orePerS() * dt; s.oil += oilPerS() * dt;
+    if (Math.random() < Math.min(carsPerS() * dt, 1)) spawnCar();
+    moveCars(dt);
+    runEvents();
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  buildPanels(); buildZoneBar(); load(); drawEggs(); draw(); requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
